@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract Token is ERC20, Ownable, ERC20Permit, ERC20Votes {
-    constructor(address _timelock, address _to) ERC20("Token", "PTK") Ownable(_timelock) ERC20Permit("Token") {
-        _mint(_to, 1000 * 10 ** decimals());
+    constructor(address _timelock) ERC20("Token", "TKN") Ownable(_timelock) ERC20Permit("Token") {
+        _mint(_timelock, 1000 * 10 ** decimals());
     }
 
     function mint(address to, uint256 amount) public onlyOwner {

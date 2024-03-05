@@ -17,16 +17,16 @@ contract MyGovernor is
     GovernorVotesQuorumFraction,
     GovernorTimelockControl
 {
-    // GovernorVotesQuorumFraction(4) // Percentage of total supply of tokens needed to aprove proposals (4%)
+    // GovernorVotesQuorumFraction(5) Percentage of total supply of tokens needed to aprove proposals (4%)
 
     /*
     1 day, 1 week 
     1 block = 12 sec
     12 * 7200 = 86400 = 60 sec * 60 min * 24 h
-    GovernorSettings(7200, 50400, 0) Параметры отображают кол-во блоков 
-    Voting Delay         - Задержка с момента создания предложения до начала голосования.
-    Voting Period        - Продолжительность периода, в течение которого люди могут голосовать.
-    Proposal Threshold   - Минимальное количество голосов, которое должно быть у аккаунта, чтобы создать предложение
+    GovernorSettings(7200, 50400, 0) Parameters display the number of blocks 
+    Voting Delay - The delay from when a proposal is created until voting begins.
+    Voting Period - The length of time people can vote.
+    Proposal Threshold - The minimum number of votes an account must have to create a proposal
     */
 
     constructor(IVotes _token, TimelockController _timelock)

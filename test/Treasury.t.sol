@@ -7,7 +7,7 @@ import {Token} from "../src/Token.sol";
 import {TimeLock} from "../src/TimeLock.sol";
 import {Treasury} from "../src/Treasury.sol";
 
-contract GovernanceTest is Test {
+contract GovernanceTreasuryTest is Test {
     Token public token;
     MyGovernor public governor;
     TimeLock public timeLock;
@@ -26,8 +26,8 @@ contract GovernanceTest is Test {
         executors[0] = msg.sender;
 
         timeLock = new TimeLock(minDelay, proposers, executors, msg.sender);
-        token = new Token(address(timeLock), msg.sender);                           // owner timeLock
-        treasury = (new Treasury){value: 1 ether}(msg.sender, address(timeLock));   // owner timeLock
+        token = new Token(address(timeLock)); // owner timeLock
+        treasury = (new Treasury){value: 1 ether}(address(123), address(timeLock)); // owner timeLock
         governor = new MyGovernor(token, timeLock);
 
         // roles
@@ -41,39 +41,11 @@ contract GovernanceTest is Test {
 
         degree = 10 ** token.decimals();
 
-        // vouting - governer - proposal - exec
-
         sendTokens();
 
         vm.roll(block.number + 1);
 
         delegateTokens();
-    }
-
-    function sendTokens() internal {
-        vm.prank(msg.sender);
-        token.transfer(address(1), 50 * degree);
-        vm.prank(msg.sender);
-        token.transfer(address(2), 50 * degree);
-        vm.prank(msg.sender);
-        token.transfer(address(3), 50 * degree);
-        vm.prank(msg.sender);
-        token.transfer(address(4), 50 * degree);
-        vm.prank(msg.sender);
-        token.transfer(address(5), 50 * degree);
-    }
-
-    function delegateTokens() internal {
-        vm.prank(address(1));
-        token.delegate(address(1));
-        vm.prank(address(2));
-        token.delegate(address(2));
-        vm.prank(address(3));
-        token.delegate(address(3));
-        vm.prank(address(4));
-        token.delegate(address(4));
-        vm.prank(address(5));
-        token.delegate(address(5));
     }
 
     function test_Deploed() public {
@@ -82,6 +54,8 @@ contract GovernanceTest is Test {
         // treasury
         assertEq(address(treasury).balance, 1 ether);
         assertEq(treasury.owner(), address(timeLock));
+        assertEq(treasury.payee(), address(123));
+        assertEq(treasury.isReleased(), false);
         // token
         assertEq(token.owner(), address(timeLock));
         assertEq(token.decimals(), 18);
@@ -97,26 +71,6 @@ contract GovernanceTest is Test {
         assertEq(timeLock.CANCELLER_ROLE(), keccak256("CANCELLER_ROLE"));
         assertTrue(timeLock.hasRole(proposerRole, address(governor)));
         assertTrue(timeLock.hasRole(executorRole, address(governor)));
-    }
-
-    function getParams(bytes4 selector, string memory description, address target, uint256 value)
-        internal
-        pure
-        returns (address[] memory, uint256[] memory, bytes[] memory, bytes32)
-    {
-        bytes memory encodedFunc = abi.encodeWithSelector(selector);
-        address[] memory targets = new address[](1);
-        targets[0] = target;
-
-        uint256[] memory values = new uint256[](1);
-        values[0] = value;
-
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = encodedFunc;
-
-        bytes32 descriptionHash = keccak256(abi.encodePacked(description));
-
-        return (targets, values, calldatas, descriptionHash);
     }
 
     function test_CreateProposalTreasury() public returns (uint256) {
@@ -170,6 +124,10 @@ contract GovernanceTest is Test {
         vm.prank(address(5));
         governor.castVote(proposalId, 2);
 
+        // Checking to see if the person has voted
+        bool voted = governor.hasVoted(proposalId, address(5));
+        assertEq(voted, true);
+
         vm.roll(governor.proposalDeadline(proposalId) + 1);
 
         // States: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired, Executed
@@ -204,12 +162,10 @@ contract GovernanceTest is Test {
         // States: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired, Executed
         state = uint256(governor.state(proposalId));
         console.log("%s %d", "Current state of proposal - Executed", state);
-    }
 
-    function logVotes(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) internal view {
-        console.log("Votes For:", forVotes / 1e18);
-        console.log("Votes Against:", againstVotes / 1e18);
-        console.log("Votes Neutral:", abstainVotes / 1e18);
+        // Verification of function execution
+        assertEq(treasury.isReleased(), true);
+        assertEq(address(123).balance, 1 ether);
     }
 
     function test_CalcelProposalTreasury() public {
@@ -231,5 +187,57 @@ contract GovernanceTest is Test {
         // States: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired, Executed
         state = uint256(governor.state(proposalId));
         console.log("%s %d", "Current state of proposal = Canceled", state);
+    }
+
+    function sendTokens() internal {
+        vm.prank(address(timeLock));
+        token.transfer(address(1), 50 * degree);
+        vm.prank(address(timeLock));
+        token.transfer(address(2), 50 * degree);
+        vm.prank(address(timeLock));
+        token.transfer(address(3), 50 * degree);
+        vm.prank(address(timeLock));
+        token.transfer(address(4), 50 * degree);
+        vm.prank(address(timeLock));
+        token.transfer(address(5), 50 * degree);
+    }
+
+    function delegateTokens() internal {
+        vm.prank(address(1));
+        token.delegate(address(1));
+        vm.prank(address(2));
+        token.delegate(address(2));
+        vm.prank(address(3));
+        token.delegate(address(3));
+        vm.prank(address(4));
+        token.delegate(address(4));
+        vm.prank(address(5));
+        token.delegate(address(5));
+    }
+
+    function logVotes(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) internal view {
+        console.log("Votes For:", forVotes / 1e18);
+        console.log("Votes Against:", againstVotes / 1e18);
+        console.log("Votes Neutral:", abstainVotes / 1e18);
+    }
+
+    function getParams(bytes4 selector, string memory description, address target, uint256 value)
+        internal
+        pure
+        returns (address[] memory, uint256[] memory, bytes[] memory, bytes32)
+    {
+        bytes memory encodedFunc = abi.encodeWithSelector(selector);
+        address[] memory targets = new address[](1);
+        targets[0] = target;
+
+        uint256[] memory values = new uint256[](1);
+        values[0] = value;
+
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = encodedFunc;
+
+        bytes32 descriptionHash = keccak256(abi.encodePacked(description));
+
+        return (targets, values, calldatas, descriptionHash);
     }
 }
